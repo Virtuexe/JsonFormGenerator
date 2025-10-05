@@ -3,15 +3,15 @@
 namespace JsonFormGenerator;
 
 public abstract class Field {
-    public void Create(Form1 form) {
+    public void Create(ItemForm form) {
         CreateSub(form);
     }
-    public static void Create(Form1 form, Field[] fields) {
+    public static void Create(ItemForm form, Field[] fields) {
         foreach (Field field in fields) {
             field.Create(form);
         }
     }
-    protected abstract void CreateSub(Form1 form);
+    protected abstract void CreateSub(ItemForm form);
     public static void CreateJson(string path, Field[] fields) {
         File.WriteAllText(path, WriteJsonBlock(fields));
     }
@@ -55,7 +55,7 @@ public class LabeledField<T> : Field where T : Field {
         Label.AutoSize = true;
         Field = field;
     }
-    protected override void CreateSub(Form1 form) {
+    protected override void CreateSub(ItemForm form) {
         form.Add(Label);
         Field.Create(form);
     }
@@ -67,18 +67,21 @@ public class FieldText : Field {
     public TextBox TextBox;
     public FieldText(string value = "")  {
         TextBox = new TextBox();
-        TextBox.TextChanged += (s, e) => {
-            int width = TextRenderer.MeasureText(TextBox.Text, TextBox.Font).Width + 15;
-            TextBox.Width = Math.Max(width, 50);
-        };
+        var func = (object? s, EventArgs e) => { };
+        TextBox.TextChanged += Resize;
         TextBox.Text = value;
+        Resize(null, new());
     }
-    protected override void CreateSub(Form1 form) {
+    protected override void CreateSub(ItemForm form) {
         form.Add(TextBox);
         form.NextLine();
     }
     protected override string WriteJsonSub(int tabCount) {
         return "\"" + TextBox.Text + "\"";
+    }
+    private void Resize(object? o, EventArgs e) {
+        int width = TextRenderer.MeasureText(TextBox.Text, TextBox.Font).Width + 15;
+        TextBox.Width = Math.Max(width, 100);
     }
 }
 public class FieldCheck : Field {
@@ -86,8 +89,10 @@ public class FieldCheck : Field {
     public FieldCheck(bool value = false)  {
         CheckBox = new CheckBox();
         CheckBox.Checked = value;
+        CheckBox.AutoSize = true;
+        CheckBox.Text = " ";
     }
-    protected override void CreateSub(Form1 form) {
+    protected override void CreateSub(ItemForm form) {
         form.Add(CheckBox);
         form.NextLine();
     }
@@ -101,7 +106,7 @@ public class FieldNumber : Field {
         NumericUpDown = new NumericUpDown();
         NumericUpDown.Value = value;
     }
-    protected override void CreateSub(Form1 form) {
+    protected override void CreateSub(ItemForm form) {
         form.Add(NumericUpDown);
         form.NextLine();
     }
@@ -109,12 +114,36 @@ public class FieldNumber : Field {
         return NumericUpDown.Value.ToString();
     }
 }
+public class FieldSelection : Field {
+    public ComboBox ComboBox;
+    public FieldSelection(string[] selections) {
+        ComboBox = new ComboBox();
+        ComboBox.Items.AddRange(selections);
+        Resize(selections);
+    }
+    protected override void CreateSub(ItemForm form) {
+        form.Add(ComboBox);
+        form.NextLine();
+    }
+    protected override string WriteJsonSub(int tabCount) {
+        return ComboBox.SelectedText;
+    }
+    private void Resize(string[] selections) {
+        int largestWidth = 0;
+        foreach (var selection in selections) {
+            int width = TextRenderer.MeasureText(selection, ComboBox.Font).Width;
+            largestWidth = width > largestWidth ? width : largestWidth;
+            Debug.WriteLine(largestWidth);
+        }
+        ComboBox.Width = largestWidth + 32;
+    }
+}
 public class FieldObject : Field {
     public Field[] Fields;
     public FieldObject(Field[] fields)  {
         Fields = fields;
     }
-    protected override void CreateSub(Form1 form) {
+    protected override void CreateSub(ItemForm form) {
         form.Tab();
         form.NextLine();
         foreach (var field in Fields) {
@@ -128,23 +157,23 @@ public class FieldObject : Field {
     }
 }
 public class FieldArray<T> : Field where T : Field {
-    public T[] _fields;
-    public FieldArray(Func<T> factory, int count)  {
-        _fields = new T[count];
+    public T[] Fields;
+    public FieldArray(Func<T> factory, int count = 0) {
+        Fields = new T[count];
         for (int i = 0; i < count; i++) {
-            _fields[i] = factory();
+            Fields[i] = factory();
         }
     }
-    protected override void CreateSub(Form1 form) {
+    protected override void CreateSub(ItemForm form) {
         form.Tab();
         form.NextLine();
-        foreach (var field in _fields) {
+        foreach (var field in Fields) {
             field.Create(form);
         }
         form.RemTab();
         form.NextLine();
     }
     protected override string WriteJsonSub(int tabCount) {
-        return WriteJsonBlock(_fields, tabCount, true);
+        return WriteJsonBlock(Fields, tabCount, true);
     }
 }

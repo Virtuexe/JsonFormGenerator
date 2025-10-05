@@ -1,6 +1,6 @@
 ﻿namespace JsonFormGenerator
 {
-    partial class Form1
+    partial class ItemForm
     {
         /// <summary>
         ///  Required designer variable.
@@ -29,12 +29,12 @@
         private void InitializeComponent() {
             SuspendLayout();
             // 
-            // Form1
+            // ItemForm
             // 
             AutoScaleDimensions = new SizeF(13F, 32F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
-            Name = "Form1";
+            Name = "ItemForm";
             Text = "Form1";
             ResumeLayout(false);
         }
