@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace JsonFormGenerator;
 public partial class Form1 : Form {
-    const int tabSize = 16;
+    const int tabSize = 32;
     int tab;
     Point cursor;
     int nextLineY;
@@ -10,17 +10,21 @@ public partial class Form1 : Form {
     public Form1() {
         InitializeComponent();
         Field[] fields = {
-            new FieldCheck("idk", true),
-            new FieldObject("obj", new Field[] {
-                new FieldCheck("idk", true),
-                new FieldNumber("idk", 69),
-                new FieldText("name", "Hello"),
-            }),
-            new FieldText("name", "Hello"),
+            new LabeledField<FieldObject>("user", new(new Field[]{
+                new LabeledField<FieldText>("name", new()),
+                new LabeledField<FieldText>("surname", new()),
+                new LabeledField<FieldCheck>("is_over_18", new()),
+                new LabeledField<FieldObject>("parent", new(new Field[]{
+                    new LabeledField<FieldText>("name", new()),
+                    new LabeledField<FieldText>("surname", new()),
+                    new LabeledField<FieldCheck>("is_over_18", new())
+                })),
+                new LabeledField<FieldArray<FieldText>>("items-to-buy", new(() => new("empty"), 5))
+            })),
+            new LabeledField<FieldCheck>("did-read-rights", new())
         };
-        foreach (Field field in fields) {
-            field.Create(this);
-        }
+        Field.Create(this, fields);
+        Field.CreateJson("./output.json", fields);
     }
     public void Tab() {
         tab++;
