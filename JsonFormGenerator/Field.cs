@@ -3,6 +3,7 @@
 namespace JsonFormGenerator;
 
 public abstract class Field {
+    //CREATE
     public void Create(ItemForm form) {
         CreateSub(form);
     }
@@ -12,6 +13,7 @@ public abstract class Field {
         }
     }
     protected abstract void CreateSub(ItemForm form);
+    //JSON
     public static void CreateJson(string path, Field[] fields) {
         File.WriteAllText(path, WriteJsonBlock(fields));
     }
@@ -45,11 +47,21 @@ public abstract class Field {
         return result;
     }
     protected abstract string WriteJsonSub(int tabCount);
+    //THEME
+    public void ApplyTheme(Theme theme) {
+        ApplyThemeSub(theme);
+    }
+    public static void ApplyTheme(Field[] fields, Theme theme) {
+        foreach (Field field in fields) {
+            field.ApplyTheme(theme);
+        }
+    }
+    protected abstract void ApplyThemeSub(Theme theme);
 }
-public class LabeledField<T> : Field where T : Field {
-    public Label Label;
-    public T Field;
-    public LabeledField(string name, T field) {
+public class LabeledField : Field {
+    public Label Label { get; set; }
+    public Field Field;
+    public LabeledField(string name, Field field) {
         Label = new Label();
         Label.Text = name;
         Label.AutoSize = true;
@@ -61,6 +73,11 @@ public class LabeledField<T> : Field where T : Field {
     }
     protected override string WriteJsonSub(int tabCount) {
         return "\"" + Label.Text + "\"" + ": " + Field.WriteJson(tabCount, false);
+    }
+    protected override void ApplyThemeSub(Theme theme) {
+        Label.BackColor = theme.BackColor;
+        Label.ForeColor = theme.TextColor;
+        Field.ApplyTheme(theme);
     }
 }
 public class FieldText : Field {
@@ -78,6 +95,12 @@ public class FieldText : Field {
     }
     protected override string WriteJsonSub(int tabCount) {
         return "\"" + TextBox.Text + "\"";
+    }
+    protected override void ApplyThemeSub(Theme theme) {
+        TextBox.BackColor = theme.ItemColor;
+        TextBox.ForeColor = theme.TextColor;
+
+        TextBox.BorderStyle = BorderStyle.None;
     }
     private void Resize(object? o, EventArgs e) {
         int width = TextRenderer.MeasureText(TextBox.Text, TextBox.Font).Width + 15;
@@ -99,6 +122,10 @@ public class FieldCheck : Field {
     protected override string WriteJsonSub(int tabCount) {
         return CheckBox.Checked ? "true" : "false";
     }
+    protected override void ApplyThemeSub(Theme theme) {
+        CheckBox.BackColor = theme.BackColor;
+        CheckBox.ForeColor = theme.TextColor;
+    }
 }
 public class FieldNumber : Field {
     public NumericUpDown NumericUpDown;
@@ -113,12 +140,24 @@ public class FieldNumber : Field {
     protected override string WriteJsonSub(int tabCount) {
         return NumericUpDown.Value.ToString();
     }
+    protected override void ApplyThemeSub(Theme theme) {
+        NumericUpDown.BackColor = theme.ItemColor;
+        NumericUpDown.ForeColor = theme.TextColor;
+    }
 }
 public class FieldSelection : Field {
     public ComboBox ComboBox;
+    private int lastSelectedIndex = -1;
     public FieldSelection(string[] selections) {
         ComboBox = new ComboBox();
         ComboBox.Items.AddRange(selections);
+        ComboBox.SelectionChangeCommitted += (s, e) => {
+            if (ComboBox.SelectedIndex == lastSelectedIndex) {
+                ComboBox.SelectedIndex = -1;
+                ComboBox.Text = string.Empty;
+            }
+            lastSelectedIndex = ComboBox.SelectedIndex;
+        };
         Resize(selections);
     }
     protected override void CreateSub(ItemForm form) {
@@ -127,6 +166,10 @@ public class FieldSelection : Field {
     }
     protected override string WriteJsonSub(int tabCount) {
         return ComboBox.SelectedText;
+    }
+    protected override void ApplyThemeSub(Theme theme) {
+        ComboBox.BackColor = theme.ItemColor;
+        ComboBox.ForeColor = theme.TextColor;
     }
     private void Resize(string[] selections) {
         int largestWidth = 0;
@@ -155,6 +198,9 @@ public class FieldObject : Field {
     protected override string WriteJsonSub(int tabCount) {
         return WriteJsonBlock(Fields, tabCount);
     }
+    protected override void ApplyThemeSub(Theme theme) {
+        ApplyTheme(Fields, theme);
+    }
 }
 public class FieldArray<T> : Field where T : Field {
     public T[] Fields;
@@ -175,5 +221,36 @@ public class FieldArray<T> : Field where T : Field {
     }
     protected override string WriteJsonSub(int tabCount) {
         return WriteJsonBlock(Fields, tabCount, true);
+    }
+    protected override void ApplyThemeSub(Theme theme) {
+        ApplyTheme(Fields, theme);
+    }
+}
+public class FieldUnion : Field {
+    public LabeledField[] Fields;
+    public FieldSelection FieldSelection;
+    public FieldUnion(LabeledField[] fields, ItemForm form) {
+        Fields = fields;
+        string[] values = new string[fields.Length];
+        for (int i = 0; i < fields.Length; i++) {
+            values[i] = fields[i].Label.Text;
+        }
+        FieldSelection = new FieldSelection(values);
+        FieldSelection.ComboBox.SelectedValueChanged += (s, e) => form.Recreate();
+    }
+    protected override void CreateSub(ItemForm form) {
+        form.Tab();
+        FieldSelection.Create(form);
+        int i = FieldSelection.ComboBox.SelectedIndex;
+        if (i != -1) {
+            Fields[FieldSelection.ComboBox.SelectedIndex].Create(form);
+        }
+        form.RemTab();
+    }
+    protected override string WriteJsonSub(int tabCount) {
+        throw new NotImplementedException();
+    }
+    protected override void ApplyThemeSub(Theme theme) {
+        throw new NotImplementedException();
     }
 }

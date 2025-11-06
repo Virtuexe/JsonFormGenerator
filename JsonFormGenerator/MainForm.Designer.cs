@@ -33,8 +33,11 @@
             // 
             // panel
             // 
+            panel.AutoScroll = true;
             panel.ColumnCount = 1;
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 20F));
+            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 20F));
             panel.Controls.Add(tableLayoutPanel2, 0, 1);
             panel.Dock = DockStyle.Fill;
             panel.Location = new Point(0, 0);

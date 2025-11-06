@@ -11,20 +11,44 @@ public partial class ItemForm : Form {
 
     public ItemForm() {
         InitializeComponent();
+        //Theme.MainTheme.ApplyTheme(this);
         _fields = [
-            new LabeledField<FieldObject>("user", new([
-                new LabeledField<FieldText>("name", new()),
-                new LabeledField<FieldText>("surname", new()),
-                new LabeledField<FieldCheck>("is_over_18", new()),
-                new LabeledField<FieldObject>("parent", new([
-                    new LabeledField<FieldText>("name", new()),
-                    new LabeledField<FieldText>("surname", new()),
-                    new LabeledField<FieldCheck>("is_over_18", new())
+            new LabeledField("Object", new FieldUnion([
+                new LabeledField("User", new FieldObject([
+                    new LabeledField("Name", new FieldText()),
+                    new LabeledField("Surname", new FieldText()),
+                    new LabeledField("Age", new FieldNumber()),
                 ])),
-                new LabeledField<FieldArray<FieldSelection>>("items-to-buy", new(() => new(["banana", "apple", "strawberry"]), 5))
-            ])),
-            new LabeledField<FieldCheck>("did-read-rights", new()),
+                new LabeledField("User2", new FieldObject([
+                    new LabeledField("Name", new FieldText()),
+                    new LabeledField("Surname", new FieldText()),
+                    new LabeledField("Age", new FieldNumber()),
+                    new LabeledField("Age", new FieldNumber()),
+                    new LabeledField("Age", new FieldNumber()),
+                    new LabeledField("Age", new FieldNumber()),
+                    new LabeledField("Age", new FieldNumber()),
+                ]))
+            ], this)),
+            new LabeledField("over-18", new FieldCheck()),
+            new LabeledField("Object", new FieldUnion([
+                new LabeledField("User", new FieldObject([
+                    new LabeledField("Name", new FieldText()),
+                    new LabeledField("Surname", new FieldText()),
+                    new LabeledField("Age", new FieldNumber()),
+                ])),
+                new LabeledField("User2", new FieldObject([
+                    new LabeledField("Name", new FieldText()),
+                    new LabeledField("Surname", new FieldText()),
+                    new LabeledField("Age", new FieldNumber()),
+                    new LabeledField("Age", new FieldNumber()),
+                    new LabeledField("Age", new FieldNumber()),
+                    new LabeledField("Age", new FieldNumber()),
+                    new LabeledField("Age", new FieldNumber()),
+                ]))
+            ], this)),
+            new LabeledField("over-18", new FieldCheck()),
         ];
+        //Field.ApplyTheme(_fields, Theme.MainTheme);
         Field.Create(this, _fields);
     }
     public void Export() {
@@ -58,6 +82,16 @@ public partial class ItemForm : Form {
         if (control.Size.Height > nextLineY) {
             nextLineY = control.Size.Height;
         }
+    }
+    public void Recreate() {
+        var scrollValue = VerticalScroll.Value;
+        Controls.Clear();
+        tab = 0;
+        cursor = new();
+        nextLineY = 0;
+        Field.Create(this, _fields);
+        VerticalScroll.Value = scrollValue;
+        VerticalScroll.Value += 1; //Scrollbar buged needs reload
     }
     public void NextLine() {
         cursor.X = tab * tabSize;
