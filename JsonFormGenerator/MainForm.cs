@@ -25,5 +25,8 @@ namespace JsonFormGenerator {
         private void ExportBtn(object sender, EventArgs e) {
             itemForm.Export();
         }
+
+        private void CreateBtn(object sender, EventArgs e) {
+        }
     }
 }

@@ -72,8 +72,9 @@
             button1.Name = "button1";
             button1.Size = new Size(134, 63);
             button1.TabIndex = 0;
-            button1.Text = "button1";
+            button1.Text = "Create";
             button1.UseVisualStyleBackColor = true;
+            button1.Click += CreateBtn;
             // 
             // exportBtn
             // 
