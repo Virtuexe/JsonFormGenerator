@@ -25,7 +25,7 @@
         private void InitializeComponent() {
             panel = new TableLayoutPanel();
             tableLayoutPanel2 = new TableLayoutPanel();
-            button1 = new Button();
+            create = new Button();
             exportBtn = new Button();
             panel.SuspendLayout();
             tableLayoutPanel2.SuspendLayout();
@@ -55,7 +55,7 @@
             tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
             tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140F));
             tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140F));
-            tableLayoutPanel2.Controls.Add(button1, 1, 0);
+            tableLayoutPanel2.Controls.Add(create, 1, 0);
             tableLayoutPanel2.Controls.Add(exportBtn, 2, 0);
             tableLayoutPanel2.Dock = DockStyle.Fill;
             tableLayoutPanel2.Location = new Point(3, 378);
@@ -65,16 +65,16 @@
             tableLayoutPanel2.Size = new Size(794, 69);
             tableLayoutPanel2.TabIndex = 0;
             // 
-            // button1
+            // create
             // 
-            button1.Dock = DockStyle.Fill;
-            button1.Location = new Point(517, 3);
-            button1.Name = "button1";
-            button1.Size = new Size(134, 63);
-            button1.TabIndex = 0;
-            button1.Text = "Create";
-            button1.UseVisualStyleBackColor = true;
-            button1.Click += CreateBtn;
+            create.Dock = DockStyle.Fill;
+            create.Location = new Point(517, 3);
+            create.Name = "create";
+            create.Size = new Size(134, 63);
+            create.TabIndex = 0;
+            create.Text = "Create";
+            create.UseVisualStyleBackColor = true;
+            create.Click += CreateBtn;
             // 
             // exportBtn
             // 
@@ -104,7 +104,7 @@
 
         private TableLayoutPanel panel;
         private TableLayoutPanel tableLayoutPanel2;
-        private Button button1;
+        private Button create;
         private Button exportBtn;
     }
 }

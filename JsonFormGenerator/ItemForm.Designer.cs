@@ -1,6 +1,6 @@
 ﻿namespace JsonFormGenerator
 {
-    partial class ItemForm
+    partial class SurveyForm
     {
         /// <summary>
         ///  Required designer variable.
