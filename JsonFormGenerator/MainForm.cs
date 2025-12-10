@@ -11,18 +11,25 @@ using System.Windows.Forms;
 
 namespace JsonFormGenerator {
     public partial class MainForm : Form {
-        SurveyForm editorSurvey;
-        SurveyForm? survey;
+        SurveyForm editorSurveyForm;
+
+        LabeledField field;
+        FieldBlock survey;
+
+        SurveyForm? surveyForm;
         public MainForm() {
             InitializeComponent();
 
-            editorSurvey = new(CreateEditorSurvey());
+            editorSurveyForm = new(CreateEditorSurvey());
 
-            editorSurvey.TopLevel = false;
-            editorSurvey.Dock = DockStyle.Fill;
-            editorSurvey.FormBorderStyle = FormBorderStyle.None;
-            editorSurvey.Show();
-            panel.Controls.Add(editorSurvey, 0, 0);
+            editorSurveyForm.TopLevel = false;
+            editorSurveyForm.Dock = DockStyle.Fill;
+            editorSurveyForm.FormBorderStyle = FormBorderStyle.None;
+            editorSurveyForm.Show();
+            panel.Controls.Add(editorSurveyForm, 0, 0);
+
+            field = new("", new FieldText());
+            survey = new([field]);
         }
         private FieldBlock CreateEditorSurvey() {
             Func<FieldBlock> getField = null!;
@@ -30,7 +37,7 @@ namespace JsonFormGenerator {
 
             };
             getField = () => new FieldBlock([
-                new LabeledField("Name", new FieldText()),
+                new LabeledField("Name", new FieldText((value) => field.Label.Text = value)),
                 new LabeledField("Type", new FieldUnion([
                     new ("Text", () => new([new LabeledField("default", new FieldText())])),
                     new ("Number", () => new([new LabeledField("default", new FieldNumber())])),
@@ -45,16 +52,16 @@ namespace JsonFormGenerator {
             return form;
         }
         private void ExportBtn(object sender, EventArgs e) {
-            editorSurvey.Export();
+            editorSurveyForm.Export();
         }
 
         private void CreateBtn(object sender, EventArgs e) {
             create.Enabled = false;
 
-            survey = new(new([]));
+            surveyForm = new(survey);
 
-            survey.Show();
-            survey.FormClosed += (_, _) => create.Enabled = true;
+            surveyForm.Show();
+            surveyForm.FormClosed += (_, _) => create.Enabled = true;
         }
     }
 }

@@ -204,7 +204,6 @@ public class FieldSelection : FieldData {
         ComboBox.Width = largestWidth + 32;
     }
 }
-public struct FieldArrayValue(int index, object value) { public int Index = index; public object Value = value; }
 public class FieldArray<T> : FieldData where T : FieldData {
     public List<T> Fields;
 
@@ -276,19 +275,23 @@ public class FieldArray<T> : FieldData where T : FieldData {
         }
     }
 }
-struct FieldUnionValue(string name, object value) { public string Name = name; public object Value = value; }
 public class FieldUnion : FieldData {
     public Func<FieldBlock>[] Factories;
     public FieldBlock? SelectedField;
     private int selectedIndex => FieldSelection.ComboBox.SelectedIndex;
     private string selectedName => FieldSelection.ComboBox.Text;
     public FieldSelection FieldSelection;
+
+    private SurveyForm? form;
     public FieldUnion((string name, Func<FieldBlock> factories)[] fields) {
         Factories = fields.Select((f) => f.factories).ToArray();
         string[] values = fields.Select(f => f.name).ToArray();
         FieldSelection = new FieldSelection(values);
+
+        FieldSelection.ComboBox.SelectedValueChanged += (_, _) => Change();
     }
     public override void Create(SurveyForm form, Cursor cursor) {
+        this.form = form;
         FieldSelection.Create(form, cursor);
         if (SelectedField != null) {
             cursor.Tab();
@@ -315,5 +318,15 @@ public class FieldUnion : FieldData {
     }
     public override void ApplyTheme(Theme theme) {
         //this.theme = theme;
+    }
+
+    private void Change() {
+        if (form == null) return;
+
+        SelectedField?.Destroy(form);
+
+        SelectedField = selectedIndex != -1 ? Factories[selectedIndex]() : null;
+        
+        form.Survey.Create(form, new());
     }
 }
