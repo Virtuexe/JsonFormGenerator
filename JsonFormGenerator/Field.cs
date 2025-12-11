@@ -1,8 +1,10 @@
 ﻿using System.Diagnostics;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows.Forms;
+using System.Windows.Markup;
 
 namespace JsonFormGenerator;
 
@@ -19,9 +21,9 @@ public abstract class FieldData : Field;
 public struct LabeledFieldValue(string name, object value) { public string Name = name; public object Value = value; }
 public class LabeledField : Field {
     public Label Label;
-    public FieldData Field;
+    public FieldData? Field;
 
-    public LabeledField(string name, FieldData field) {
+    public LabeledField(string name, FieldData? field) {
         Label = new Label();
         Label.Text = name;
         Label.AutoSize = true;
@@ -33,31 +35,35 @@ public class LabeledField : Field {
             cursor.Tab();
             cursor.NextLine();
         }
-        Field.Create(form, cursor);
+        Field?.Create(form, cursor);
         if (Field is FieldBlock) {
             cursor.UnTab();
         }
     }
     public override void Destroy(SurveyForm form) {
         form.Dispose(Label);
-        Field.Destroy(form);
+        Field?.Destroy(form);
     }
     internal override void WriteJson(Utf8JsonWriter writter) {
         writter.WritePropertyName(Label.Text);
-        Field.WriteJson(writter);
+        if (Field != null) {
+            Field.WriteJson(writter);
+        } else {
+            writter.WriteNullValue();
+        }
     }
     public override void ApplyTheme(Theme theme) {
         Label.BackColor = theme.BackColor;
         Label.ForeColor = theme.TextColor;
-        Field.ApplyTheme(theme);
+        Field?.ApplyTheme(theme);
     }
 }
 
-public struct FieldBlockValue(int index, object value) { public int Index = index; public object Value = value; }
+
 public class FieldBlock : FieldData {
     public Field[] Fields;
 
-    public FieldBlock(Field[] fields, Action<FieldBlockValue>? update = null) {
+    public FieldBlock(Field[] fields) {
         this.Fields = fields;
     }
     public override void Create(SurveyForm form, Cursor cursor) {
@@ -165,10 +171,18 @@ public class FieldNumber : FieldData {
         NumericUpDown.ForeColor = theme.TextColor;
     }
 }
+
+public delegate void FieldSelectionUpdate(string? from, string? to);
 public class FieldSelection : FieldData {
     public ComboBox ComboBox;
     private int lastSelectedIndex = -1;
-    public FieldSelection(string[] selections, Action<string>? update = null) {
+    private string? lastSelected {
+        get {
+            var i = lastSelectedIndex;
+            return i == -1 ? null : (string)ComboBox.Items[i]!;
+        }
+    }
+    public FieldSelection(string[] selections, FieldSelectionUpdate? update = null) {
         ComboBox = new ComboBox();
         ComboBox.Items.AddRange(selections);
         ComboBox.SelectionChangeCommitted += (s, e) => {
@@ -176,11 +190,10 @@ public class FieldSelection : FieldData {
                 ComboBox.SelectedIndex = -1;
                 ComboBox.Text = string.Empty;
             }
+            update?.Invoke(lastSelected, (string)ComboBox.SelectedItem!);
             lastSelectedIndex = ComboBox.SelectedIndex;
         };
         Resize(selections);
-
-        ComboBox.SelectedValueChanged += (_, _) => update?.Invoke((string)ComboBox.SelectedValue!);
     }
     public override void Create(SurveyForm form, Cursor cursor) {
         cursor.Add(ComboBox, form);
@@ -209,11 +222,13 @@ public class FieldArray<T> : FieldData where T : FieldData {
 
     private Button addBtn;
     private Button removeBtn;
-    private Func<T> factory;
+    private event Action<int>? OnAdd;
+    private event Action<int>? OnRem;
+    private Func<int,T> factory;
     private Theme? theme;
 
     private SurveyForm? form;
-    public FieldArray(Func<T> factory) {
+    public FieldArray(Func<int,T> factory, Action<int, bool>? update = null) {
         Fields = new List<T>();
 
         addBtn = new Button();
@@ -226,6 +241,9 @@ public class FieldArray<T> : FieldData where T : FieldData {
         removeBtn.Click += (_, _) => Remove(form!);
 
         this.factory = factory;
+
+        OnAdd += (i) => update?.Invoke(i, true);
+        OnRem += (i) => update?.Invoke(i, false);
     }
     public override void Create(SurveyForm form, Cursor cursor) {
         cursor.Tab();
@@ -250,13 +268,17 @@ public class FieldArray<T> : FieldData where T : FieldData {
         }
     }
     private void Add(SurveyForm form) {
-        Fields.Add(factory());
+        Fields.Add(factory(Fields.Count));
         form.Survey.Create(form, new());
+        
+        OnAdd?.Invoke(Fields.Count-1);
     }
     private void Remove(SurveyForm form) {
         Fields[^1].Destroy(form);
         Fields.Remove(Fields[^1]);
         form.Survey.Create(form, new());
+
+        OnRem?.Invoke(Fields.Count);
     }
     private void UpdateRmvBtn() {
         removeBtn.Enabled = Fields.Count != 0;
@@ -276,19 +298,22 @@ public class FieldArray<T> : FieldData where T : FieldData {
     }
 }
 public class FieldUnion : FieldData {
-    public Func<FieldBlock>[] Factories;
-    public FieldBlock? SelectedField;
-    private int selectedIndex => FieldSelection.ComboBox.SelectedIndex;
-    private string selectedName => FieldSelection.ComboBox.Text;
+    public Func<Field>[] Factories;
+    public Field? SelectedField;
     public FieldSelection FieldSelection;
+    private Dictionary<string, int> map;
 
     private SurveyForm? form;
-    public FieldUnion((string name, Func<FieldBlock> factories)[] fields) {
-        Factories = fields.Select((f) => f.factories).ToArray();
-        string[] values = fields.Select(f => f.name).ToArray();
-        FieldSelection = new FieldSelection(values);
-
-        FieldSelection.ComboBox.SelectedValueChanged += (_, _) => Change();
+    public FieldUnion((string name, Func<Field> factory)[] fields, FieldSelectionUpdate? update = null) {
+        Factories = new Func<Field>[fields.Length];
+        string[] values = new string[fields.Length];
+        map = new();
+        for (int i = 0; i < fields.Length; i++) {
+            Factories[i] = fields[i].factory;
+            values[i] = fields[i].name;
+            map[fields[i].name] = i;
+        }
+        FieldSelection = new FieldSelection(values, (from, to) => { Change(from, to); update?.Invoke(from, to); });
     }
     public override void Create(SurveyForm form, Cursor cursor) {
         this.form = form;
@@ -307,7 +332,7 @@ public class FieldUnion : FieldData {
     internal override void WriteJson(Utf8JsonWriter writter) {
         if (SelectedField != null) {
             writter.WriteStartObject();
-            writter.WriteString("type", selectedName);
+            writter.WriteString("type", FieldSelection.ComboBox.Text);
             writter.WritePropertyName("data");
             SelectedField.WriteJson(writter);
             writter.WriteEndObject();
@@ -320,13 +345,11 @@ public class FieldUnion : FieldData {
         //this.theme = theme;
     }
 
-    private void Change() {
+    private void Change(string? from, string? to) {
         if (form == null) return;
-
         SelectedField?.Destroy(form);
-
-        SelectedField = selectedIndex != -1 ? Factories[selectedIndex]() : null;
-        
+        if (to != null) SelectedField = Factories[map[to]]();
+        else SelectedField = null;
         form.Survey.Create(form, new());
     }
 }
