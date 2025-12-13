@@ -1,93 +1,122 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
-using System.Diagnostics;
-using System.Drawing;
-using System.Linq;
-using System.Reflection.Metadata;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+namespace JsonFormGenerator;
+using FieldBlockLF = FieldBlockTemplate<List<LabeledField>, LabeledField>;
+public partial class MainForm : Form {
+    SurveyForm editorSurveyForm;
+    FieldBlockLF survey;
 
-namespace JsonFormGenerator {
-    public partial class MainForm : Form {
-        SurveyForm editorSurveyForm;
+    SurveyForm? surveyForm;
+    public MainForm() {
+        InitializeComponent();
 
-        List<LabeledField> fields { 
-            get { return survey.Fields.Select((f) => (LabeledField)f).ToList();}
-            set { survey.Fields = value.Select(f => (Field)f).ToArray(); }
+        editorSurveyForm = new(CreateEditorSurvey());
+
+        editorSurveyForm.TopLevel = false;
+        editorSurveyForm.Dock = DockStyle.Fill;
+        editorSurveyForm.FormBorderStyle = FormBorderStyle.None;
+        editorSurveyForm.Show();
+        panel.Controls.Add(editorSurveyForm, 0, 0);
+
+        survey = new([]);
+    }
+    private Field CreateEditorSurvey() {
+        Func<int[], int, FieldUnionConstruct[]> typeRaw = null!;
+        Func<int[], int, LabeledField> type = null!;
+        Func<int[], int, FieldBlockLF> field = null!;
+        Func<int[], FieldArray<FieldBlockLF>> fields = null!;
+        typeRaw = (indexes, i) => [
+            new("text", null),
+            new("number", null),
+            new("check", null),
+            new("array", () => new LabeledField("type", new FieldUnion(typeRaw(indexes, i), (from, to) => BindFieldArray(indexes, i, to)))),
+            new("block", () => fields([..indexes, i])),
+        ];
+        type = (indexes, i) => new LabeledField("type", new FieldUnion(typeRaw(indexes, i), (from, to) => BindField(indexes, i, to)));
+        field = (indexes, i) => new([
+           new LabeledField("name", new FieldText((value) => BindLabel(indexes, i, value))),
+           type(indexes, i),
+        ]);
+        fields = (indexes) => new FieldArray<FieldBlockLF>((i) => field(indexes, i), (i, add) => BindArray(indexes, i, add));
+        FieldBlock survey = new([
+            new LabeledField("fields", fields([]))
+        ]);
+        return survey;
+    }
+    private List<LabeledField> TraverseSurvey(int[] indexes) {
+        var fields = survey.Fields;
+        foreach (var i in indexes) {
+            fields = ((FieldBlockLF)fields[i].Field!).Fields;
         }
-        FieldBlock survey;
-
-        SurveyForm? surveyForm;
-        public MainForm() {
-            InitializeComponent();
-
-            editorSurveyForm = new(CreateEditorSurvey());
-
-            editorSurveyForm.TopLevel = false;
-            editorSurveyForm.Dock = DockStyle.Fill;
-            editorSurveyForm.FormBorderStyle = FormBorderStyle.None;
-            editorSurveyForm.Show();
-            panel.Controls.Add(editorSurveyForm, 0, 0);
-
-            survey = new([]);
+        return fields;
+    }
+    private void BindArray(int[] indexes, int i, bool add) {
+        var fields = TraverseSurvey(indexes);
+        if (add) {
+            fields.Insert(i, new("", new FieldBlockLF([])));
         }
-        private FieldBlock CreateEditorSurvey() {
-            Func<int, FieldUnion> getType;
-            Func<int, FieldBlock> getField = null!;
-            getType = (i) => new FieldUnion(
-                [
-                    new ("Text", () => null /*new LabeledField("default", new FieldText())*/),
-                    new ("Number", () => null /*new LabeledField("default", new FieldNumber())*/),
-                    new ("Check", () => null /*new LabeledField("default", new FieldCheck())*/),
-                    new ("Array", () => new LabeledField("Field", getField(-1))),
-                    new ("Block", () => new LabeledField("fields", new FieldArray<FieldBlock>(new(getField))))
-                ], (_, to) => {
-                    if (i == -1) return;
-                    switch (to) {
-                        case "Text":
-                            fields[i].Field = new FieldText();
-                            break;
-                        case "Number":
-                            fields[i].Field = new FieldNumber();
-                            break;
-                        case "Check":
-                            fields[i].Field = new FieldCheck();
-                            break;
-                        //case "Array":
-                        //    fields[i].Field = new FieldArray();
-                        //    break;
-                    }
-                    if (surveyForm != null) survey.Create(surveyForm, new());
-                });
-            getField = (i) => new FieldBlock(new[] {
-                new LabeledField("Name", new FieldText((value) => {fields[i].Label.Text = value; if (surveyForm != null) survey.Create(surveyForm, new()); })),
-                new LabeledField("Type", getType(i))
-            });
-            var form = new FieldBlock([
-                new LabeledField("Fields", new FieldArray<FieldBlock>(new(getField), (i, add) => {
-                    var fields = this.fields;
-                    if (add) fields.Insert(i, new("", null));
-                    else fields.RemoveAt(i);
-                    this.fields = fields;
-                    if (surveyForm != null) survey.Create(surveyForm, new());
-                })),
-            ]);
-            return form;
+        else {
+            if (surveyForm != null) fields[i].Destroy(surveyForm);
+            fields.RemoveAt(i);
         }
-        private void ExportBtn(object sender, EventArgs e) {
-            editorSurveyForm.Export();
+        if (surveyForm != null) survey.Create(surveyForm, new());
+    }
+    private void BindLabel(int[] indexes, int i, string value) {
+        var fields = TraverseSurvey(indexes);
+        fields[i].Label.Text = value;
+        if (surveyForm != null) survey.Create(surveyForm, new());
+    }
+    private void BindField(int[] indexes, int i, string? to) {
+        var fields = TraverseSurvey(indexes);
+        if (surveyForm != null) fields[i].Field?.Destroy(surveyForm);
+        switch (to) {
+            case "text":
+                fields[i].Field = new FieldText();
+                break;
+            case "number":
+                fields[i].Field = new FieldNumber();
+                break;
+            case "check":
+                fields[i].Field = new FieldCheck();
+                break;
+            case "array":
+                break;
+            case "block":
+                fields[i].Field = new FieldBlockLF([]);
+                break;
         }
-
-        private void CreateBtn(object sender, EventArgs e) {
-            create.Enabled = false;
-
-            surveyForm = new(survey);
-
-            surveyForm.Show();
-            surveyForm.FormClosed += (_, _) => create.Enabled = true;
+        if (surveyForm != null) survey.Create(surveyForm, new());
+    }
+    private void BindFieldArray(int[] indexes, int i, string? to) {
+        var fields = TraverseSurvey(indexes);
+        if(surveyForm != null) fields[i].Field?.Destroy(surveyForm);
+        switch(to) {
+            case "text":
+                fields[i].Field = new FieldArray<FieldText>((i) => new());
+                break;
+            case "number":
+                fields[i].Field = new FieldArray<FieldNumber>((i) => new());
+                break;
+            case "check":
+                fields[i].Field = new FieldArray<FieldCheck>((i) => new());
+                break;
+            case "array":
+                break;
+            case "block":
+                break;
         }
+        if(surveyForm != null) survey.Create(surveyForm, new());
+    }
+    private void ExportBtn(object sender, EventArgs e) {
+        editorSurveyForm.Export();
+    }
+
+    private void CreateBtn(object sender, EventArgs e) {
+        create.Enabled = false;
+
+        surveyForm = new(survey);
+
+        surveyForm.Show();
+        surveyForm.FormClosed += (_, _) => create.Enabled = true;
     }
 }

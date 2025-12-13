@@ -7,14 +7,14 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace JsonFormGenerator;
 public partial class SurveyForm : Form {
-    public FieldBlock Survey;
+    public Field Survey;
 
-    public SurveyForm(FieldBlock form) {
+    public SurveyForm(Field form) {
         InitializeComponent();
         Survey = form;
         form.Create(this, new());
     }
-    public void Export() { //chatgeepeetee 🛌
+    public void Export() {
         using (var dlg = new SaveFileDialog()) {
             dlg.Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*";
             dlg.DefaultExt = "json";
