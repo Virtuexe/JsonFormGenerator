@@ -1,16 +1,16 @@
 ﻿using System;
 using System.Data;
 namespace JsonFormGenerator;
-using FieldBlockLF = FieldBlockTemplate<List<LabeledField>, LabeledField>;
 public partial class MainForm : Form {
     SurveyForm editorSurveyForm;
-    FieldBlockLF survey;
+    FieldBlock editorSurvey;
+    FieldBlock survey;
 
     SurveyForm? surveyForm;
     public MainForm() {
         InitializeComponent();
-
         editorSurveyForm = new(CreateEditorSurvey());
+        editorSurvey = (FieldBlock)editorSurveyForm.Survey;
 
         editorSurveyForm.TopLevel = false;
         editorSurveyForm.Dock = DockStyle.Fill;
@@ -21,12 +21,26 @@ public partial class MainForm : Form {
         survey = new([]);
     }
     private Field CreateEditorSurvey() {
-        FieldBlock survey = new([
-            new LabeledField("fields", new FieldArray<FieldUnion>((i) => CreateField()))    
-        ]);
+        FieldBlock survey = new([]);
+        survey.Fields = [
+            new LabeledField("fields", new FieldArray<FieldBlock>(
+                (i) => CreateField(i), 
+                (i, add) => BindArray(this.survey.Fields, i, add))
+            )    
+        ];
         return survey;
     }
-    private FieldUnion CreateField() {
+    private void BindArray(List<Field?> fields, int i, bool add) {
+        if (add) {
+            fields.Insert(i, new LabeledField("", null));
+        }
+        else {
+            if(surveyForm != null) fields[i]?.Destroy(surveyForm);
+            fields.RemoveAt(i);
+        }
+        if(surveyForm != null) survey.Create(surveyForm, new());
+    }
+    private FieldBlock CreateField(int i) {
         FieldUnion union = new([
             new("text", null),
             new("number", null),
@@ -35,45 +49,36 @@ public partial class MainForm : Form {
             new("array", null),
             new("block", null),
             new("union", null),
+        ], (_, to) => BindField(i, to));
+        FieldBlock field = new([
+            new LabeledField("name", new FieldText((value) => ((LabeledField)survey.Fields[i]!).Label.Text = value)),
+            new LabeledField("type", union)
         ]);
-        return union;
+        return field;
     }
-    private void BindArray(List<LabeledField> fields, int i, bool add) {
-        if (add) {
-            fields.Insert(i, new("", new FieldBlockLF([])));
-        }
-        else {
-            if (surveyForm != null) fields[i].Destroy(surveyForm);
-            fields.RemoveAt(i);
-        }
-        if (surveyForm != null) survey.Create(surveyForm, new());
-    }
-    private void BindLabel(LabeledField field, string value) {
-        field.Label.Text = value;
-        if (surveyForm != null) survey.Create(surveyForm, new());
-    }
-    private void BindField(LabeledField field, string? to) {
-        if (surveyForm != null) field.Field?.Destroy(surveyForm);
+    private void BindField(int i, string? to) {
+        ref var field = ref ((LabeledField)survey.Fields[i]!).Field;
+        if (surveyForm != null) field?.Destroy(surveyForm);
         switch (to) {
             case "text":
-                field.Field = new FieldText();
+                field = new FieldText();
                 break;
             case "number":
-                field.Field = new FieldNumber();
+                field = new FieldNumber();
                 break;
             case "check":
-                field.Field = new FieldCheck();
+                field = new FieldCheck();
+                break;
+            case "selection":
+                field = new FieldSelection([]);
                 break;
             case "array":
                 break;
             case "block":
-                field.Field = new FieldBlockLF([]);
+                field = new FieldBlock([]);
                 break;
         }
         if (surveyForm != null) survey.Create(surveyForm, new());
-    }
-    private void BindArrayField(int[] index, int i, string? to) {
-
     }
     private void ExportBtn(object sender, EventArgs e) {
         editorSurveyForm.Export();

@@ -9,10 +9,10 @@ namespace JsonFormGenerator;
 public partial class SurveyForm : Form {
     public Field Survey;
 
-    public SurveyForm(Field form) {
+    public SurveyForm(Field survey) {
         InitializeComponent();
-        Survey = form;
-        form.Create(this, new());
+        Survey = survey;
+        survey.Create(this, new());
     }
     public void Export() {
         using (var dlg = new SaveFileDialog()) {

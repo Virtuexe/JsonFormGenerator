@@ -17,12 +17,12 @@ public class LabeledField : Field {
     }
     public override void Create(SurveyForm form, Cursor cursor) {
         cursor.Add(Label, form);
-        if (Field is IFieldBlock) {
+        if (Field is FieldBlock) {
             cursor.Tab();
             cursor.NextLine();
         }
         Field?.Create(form, cursor);
-        if (Field is IFieldBlock) {
+        if (Field is FieldBlock) {
             cursor.UnTab();
         }
     }

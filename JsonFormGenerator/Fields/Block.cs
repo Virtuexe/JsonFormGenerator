@@ -7,31 +7,28 @@ using System.Threading.Tasks;
 
 namespace JsonFormGenerator;
 
-public interface IFieldBlock;
-public class FieldBlock : FieldBlockTemplate<Field[], Field> {
-    public FieldBlock(Field[] fields) : base(fields) { }
-}
-public class FieldBlockTemplate<Collection, T> : FieldData, IFieldBlock where Collection : ICollection<T> where T : Field {
-    public Collection Fields;
+public class FieldBlock : FieldData {
+    public List<Field?> Fields;
 
-    public FieldBlockTemplate(Collection fields) {
+    public FieldBlock(List<Field?> fields) {
         this.Fields = fields;
     }
     public override void Create(SurveyForm form, Cursor cursor) {
         foreach (var field in Fields) {
+            if(field == null) continue; 
             field.Create(form, cursor);
             cursor.NextLine();
         }
     }
     public override void Destroy(SurveyForm form) {
         foreach (var field in Fields) {
-            field.Destroy(form);
+            field?.Destroy(form);
         }
     }
     internal override void WriteJson(Utf8JsonWriter writter) {
         writter.WriteStartObject();
         foreach (var field in Fields) {
-            field.WriteJson(writter);
+            field?.WriteJson(writter);
         }
         writter.WriteEndObject();
     }
