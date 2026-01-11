@@ -6,19 +6,21 @@ using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace JsonFormGenerator;
+
+public abstract class FieldArray : FieldData;
 public delegate void FieldArrayUpdate(int index, bool add);
-public class FieldArray<T> : FieldData where T : Field {
+public class FieldArray<T> : FieldArray where T : FieldData {
     public List<T> Fields;
 
     private Button addBtn;
     private Button removeBtn;
     private event Action<int>? OnAdd;
     private event Action<int>? OnRem;
-    private Func<int, T> factory;
+    public Func<int, T>? Factory;
     private Theme? theme;
 
     private SurveyForm? form;
-    public FieldArray(Func<int, T> factory, FieldArrayUpdate? update = null) {
+    public FieldArray(Func<int, T>? factory, FieldArrayUpdate? update = null) {
         Fields = new List<T>();
 
         addBtn = new Button();
@@ -30,15 +32,15 @@ public class FieldArray<T> : FieldData where T : Field {
         addBtn.Click += (_, _) => Add(form!);
         removeBtn.Click += (_, _) => Remove(form!);
 
-        this.factory = factory;
+        this.Factory = factory;
 
         OnAdd += (i) => update?.Invoke(i, true);
         OnRem += (i) => update?.Invoke(i, false);
     }
     public override void Create(SurveyForm form, Cursor cursor) {
         cursor.Tab();
-        cursor.NextLine();
         foreach (var field in Fields) {
+            cursor.NextLine();
             field.Create(form, cursor);
         }
         cursor.UnTab();
@@ -48,7 +50,7 @@ public class FieldArray<T> : FieldData where T : Field {
         cursor.Add(removeBtn, form);
 
         this.form = form;
-        UpdateRmvBtn();
+        UpdateBtns();
     }
     public override void Destroy(SurveyForm form) {
         form.Dispose(addBtn);
@@ -58,7 +60,7 @@ public class FieldArray<T> : FieldData where T : Field {
         }
     }
     private void Add(SurveyForm form) {
-        Fields.Add(factory(Fields.Count));
+        Fields.Add(Factory!(Fields.Count));
         form.Survey.Create(form, new());
 
         OnAdd?.Invoke(Fields.Count - 1);
@@ -70,7 +72,8 @@ public class FieldArray<T> : FieldData where T : Field {
 
         OnRem?.Invoke(Fields.Count);
     }
-    private void UpdateRmvBtn() {
+    private void UpdateBtns() {
+        addBtn.Enabled = Factory != null;
         removeBtn.Enabled = Fields.Count != 0;
     }
     internal override void WriteJson(Utf8JsonWriter writter) {

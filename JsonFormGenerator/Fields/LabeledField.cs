@@ -9,7 +9,7 @@ namespace JsonFormGenerator;
 public class LabeledField : Field {
     public Label Label;
     public FieldData? Field;
-    public LabeledField(string name, FieldData? field) {
+    public LabeledField(string name, FieldData? field = null) {
         Label = new Label();
         Label.Text = name;
         Label.AutoSize = true;

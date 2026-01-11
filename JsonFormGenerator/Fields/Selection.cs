@@ -15,7 +15,7 @@ public class FieldSelection : FieldData {
             var i = lastSelectedIndex;
             return i == -1 ? null : (string)ComboBox.Items[i]!;
         }
-    }
+    } 
     public FieldSelection(string[] selections, FieldSelectionUpdate? update = null) {
         ComboBox = new ComboBox();
         ComboBox.Items.AddRange(selections);

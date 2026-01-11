@@ -11,17 +11,14 @@ public class FieldUnion : FieldData {
     public Func<Field>?[] Factories;
     public Field? SelectedField;
     public FieldSelection FieldSelection;
-    private Dictionary<string, int> map;
 
     private SurveyForm? form;
     public FieldUnion(FieldUnionConstruct[] fields, FieldSelectionUpdate? update = null) {
         Factories = new Func<Field>[fields.Length];
         string[] values = new string[fields.Length];
-        map = new();
         for (int i = 0; i < fields.Length; i++) {
             Factories[i] = fields[i].Factory;
             values[i] = fields[i].Name;
-            map[fields[i].Name] = i;
         }
         FieldSelection = new FieldSelection(values, (from, to) => { Change(from, to); update?.Invoke(from, to); });
     }
@@ -40,16 +37,20 @@ public class FieldUnion : FieldData {
         FieldSelection.Destroy(form);
     }
     internal override void WriteJson(Utf8JsonWriter writter) {
-        if (SelectedField != null) {
-            writter.WritePropertyName(FieldSelection.ComboBox.Text);
-            writter.WriteStartObject();
+        writter.WriteStartObject();
+        writter.WritePropertyName("type");
+        FieldSelection.WriteJson(writter);
+        writter.WritePropertyName("value");
+        if (SelectedField != null)
             SelectedField.WriteJson(writter);
-            writter.WriteEndObject();
-        }
+        else
+            writter.WriteNullValue();
+        writter.WriteEndObject();
     }
     private void Change(string? from, string? to) {
+        var i = FieldSelection.ComboBox.SelectedIndex;
         if(form != null) SelectedField?.Destroy(form);
-        if (to != null) SelectedField = Factories[map[to]]?.Invoke();
+        if (to != null) SelectedField = Factories[i]?.Invoke();
         else SelectedField = null;
         form?.Survey.Create(form, new());
     }
