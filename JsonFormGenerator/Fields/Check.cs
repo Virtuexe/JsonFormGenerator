@@ -25,4 +25,10 @@ public class FieldCheck : FieldData {
     internal override void WriteJson(Utf8JsonWriter writter) {
         writter.WriteBooleanValue(CheckBox.Checked);
     }
+    internal override Field ReadJson(ref Utf8JsonReader reader) {
+        var result = new FieldCheck();
+        result.CheckBox.Checked = reader.GetBoolean();
+        reader.Read();
+        return result;
+    }
 }

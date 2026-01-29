@@ -13,4 +13,5 @@ public abstract class Field {
     public abstract void Destroy(SurveyForm form);
     //public abstract void Remove(ItemForm form, Cursor cursor);
     internal abstract void WriteJson(Utf8JsonWriter writter);
+    internal abstract Field ReadJson(ref Utf8JsonReader reader);
 }

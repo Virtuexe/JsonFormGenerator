@@ -47,6 +47,9 @@ public class FieldUnion : FieldData {
             writter.WriteNullValue();
         writter.WriteEndObject();
     }
+    internal override Field ReadJson(ref Utf8JsonReader reader) {
+        throw new NotImplementedException();
+    }
     private void Change(string? from, string? to) {
         var i = FieldSelection.ComboBox.SelectedIndex;
         if(form != null) SelectedField?.Destroy(form);

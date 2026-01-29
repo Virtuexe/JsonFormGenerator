@@ -7,13 +7,15 @@ using System.Threading.Tasks;
 
 namespace JsonFormGenerator;
 public class FieldText : FieldData {
+    Action<string>? update;
     public TextBox TextBox;
 
-    public FieldText(Action<string>? update = null, string value = "") {
+    public FieldText(Action<string>? update = null) {
+        this.update = update;
+
         TextBox = new TextBox();
         var func = (object? s, EventArgs e) => { };
         TextBox.TextChanged += Resize;
-        TextBox.Text = value;
         Resize(null, new());
 
         TextBox.TextChanged += (_, _) => update?.Invoke(TextBox.Text);
@@ -27,6 +29,12 @@ public class FieldText : FieldData {
     }
     internal override void WriteJson(Utf8JsonWriter writter) {
         writter.WriteStringValue(TextBox.Text);
+    }
+    internal override Field ReadJson(ref Utf8JsonReader reader) {
+        var result = new FieldText(update);
+        result.TextBox.Text = reader.GetString();
+        reader.Read();
+        return result;
     }
     private void Resize(object? o, EventArgs e) {
         int width = TextRenderer.MeasureText(TextBox.Text, TextBox.Font).Width + 15;

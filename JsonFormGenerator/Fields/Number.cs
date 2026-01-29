@@ -25,4 +25,10 @@ public class FieldNumber : FieldData {
     internal override void WriteJson(Utf8JsonWriter writter) {
         writter.WriteNumberValue(NumericUpDown.Value);
     }
+    internal override Field ReadJson(ref Utf8JsonReader reader) {
+        var result = new FieldNumber();
+        result.NumericUpDown.Value = reader.GetDecimal();
+        reader.Read();
+        return result;
+    }
 }

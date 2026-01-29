@@ -34,6 +34,24 @@ public partial class SurveyForm : Form {
             }
         }
     }
+    public void Import() {
+        using (var dlg = new OpenFileDialog()) {
+            dlg.Filter = "JSON files (*.json)|*.json";
+            if (dlg.ShowDialog(this) == DialogResult.OK) {
+
+                byte[] jsonBytes = File.ReadAllBytes(dlg.FileName);
+
+                var reader = new Utf8JsonReader(jsonBytes);
+
+                reader.Read();
+
+                Survey.ReadJson(ref reader);
+
+                this.Controls.Clear();
+                Survey.Create(this, new());
+            }
+        }
+    }
     public void Dispose(Control c) {
         Controls.Remove(c);
         c.Dispose();

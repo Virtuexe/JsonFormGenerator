@@ -1,5 +1,5 @@
 ﻿namespace JsonFormGenerator {
-    partial class MainForm {
+    partial class EditorForm {
         /// <summary>
         /// Required designer variable.
         /// </summary>
@@ -27,6 +27,7 @@
             tableLayoutPanel2 = new TableLayoutPanel();
             create = new Button();
             exportBtn = new Button();
+            import = new Button();
             panel.SuspendLayout();
             tableLayoutPanel2.SuspendLayout();
             SuspendLayout();
@@ -51,12 +52,14 @@
             // tableLayoutPanel2
             // 
             tableLayoutPanel2.BackColor = SystemColors.GradientActiveCaption;
-            tableLayoutPanel2.ColumnCount = 3;
+            tableLayoutPanel2.ColumnCount = 4;
             tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
             tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140F));
             tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140F));
+            tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140F));
+            tableLayoutPanel2.Controls.Add(import, 1, 0);
             tableLayoutPanel2.Controls.Add(create, 1, 0);
-            tableLayoutPanel2.Controls.Add(exportBtn, 2, 0);
+            tableLayoutPanel2.Controls.Add(exportBtn, 3, 0);
             tableLayoutPanel2.Dock = DockStyle.Fill;
             tableLayoutPanel2.Location = new Point(3, 378);
             tableLayoutPanel2.Name = "tableLayoutPanel2";
@@ -68,7 +71,7 @@
             // create
             // 
             create.Dock = DockStyle.Fill;
-            create.Location = new Point(517, 3);
+            create.Location = new Point(377, 3);
             create.Name = "create";
             create.Size = new Size(134, 63);
             create.TabIndex = 0;
@@ -87,13 +90,24 @@
             exportBtn.UseVisualStyleBackColor = true;
             exportBtn.Click += ExportBtn;
             // 
-            // MainForm
+            // import
+            // 
+            import.Dock = DockStyle.Fill;
+            import.Location = new Point(517, 3);
+            import.Name = "import";
+            import.Size = new Size(134, 63);
+            import.TabIndex = 2;
+            import.Text = "Import";
+            import.UseVisualStyleBackColor = true;
+            import.Click += ImportBtn;
+            // 
+            // EditorForm
             // 
             AutoScaleDimensions = new SizeF(13F, 32F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
             Controls.Add(panel);
-            Name = "MainForm";
+            Name = "EditorForm";
             Text = "MainForm";
             panel.ResumeLayout(false);
             tableLayoutPanel2.ResumeLayout(false);
@@ -106,5 +120,6 @@
         private TableLayoutPanel tableLayoutPanel2;
         private Button create;
         private Button exportBtn;
+        private Button import;
     }
 }

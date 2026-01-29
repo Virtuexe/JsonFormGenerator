@@ -32,4 +32,19 @@ public class FieldBlock : FieldData {
         }
         writter.WriteEndObject();
     }
+    internal override Field ReadJson(ref Utf8JsonReader reader) {
+        reader.Read();
+        var result = new FieldBlock(Fields);
+        for (int i = 0; i < Fields.Count; i++) {
+            if (reader.TokenType == JsonTokenType.EndObject) {
+                break;
+            }
+            result.Fields[i] = result.Fields[i]?.ReadJson(ref reader);
+        }
+        if (reader.TokenType == JsonTokenType.EndObject) {
+            reader.Read();
+        }
+
+        return result;
+    }
 }

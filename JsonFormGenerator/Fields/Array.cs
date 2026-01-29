@@ -10,13 +10,14 @@ namespace JsonFormGenerator;
 public abstract class FieldArray : FieldData;
 public delegate void FieldArrayUpdate(int index, bool add);
 public class FieldArray<T> : FieldArray where T : FieldData {
-    public List<T> Fields;
+    public Func<int, T>? Factory;
+    private FieldArrayUpdate? update;
 
+    public List<T> Fields;
     private Button addBtn;
     private Button removeBtn;
     private event Action<int>? OnAdd;
     private event Action<int>? OnRem;
-    public Func<int, T>? Factory;
     private Theme? theme;
 
     private SurveyForm? form;
@@ -33,6 +34,7 @@ public class FieldArray<T> : FieldArray where T : FieldData {
         removeBtn.Click += (_, _) => Remove(form!);
 
         this.Factory = factory;
+        this.update = update;
 
         OnAdd += (i) => update?.Invoke(i, true);
         OnRem += (i) => update?.Invoke(i, false);
@@ -82,5 +84,15 @@ public class FieldArray<T> : FieldArray where T : FieldData {
             field.WriteJson(writter);
         }
         writter.WriteEndArray();
+    }
+    internal override Field ReadJson(ref Utf8JsonReader reader) {
+        reader.Read();
+        var result = new FieldArray<T>(Factory, update);
+        while (reader.Read() && reader.TokenType != JsonTokenType.EndArray) {
+            if (Factory == null) continue;
+            var resultItem = Factory.Invoke(result.Fields.Count);
+            result.Fields.Add((T)resultItem.ReadJson(ref reader));
+        }
+        return result;
     }
 }
