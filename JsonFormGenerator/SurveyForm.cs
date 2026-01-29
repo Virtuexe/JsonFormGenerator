@@ -45,7 +45,12 @@ public partial class SurveyForm : Form {
 
                 reader.Read();
 
-                Survey.ReadJson(ref reader);
+                try {
+                    Survey.ReadJson(ref reader);
+                }
+                catch (Exception ex) {
+                    MessageBox.Show($"Import failed (incompatible file): {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
 
                 this.Controls.Clear();
                 Survey.Create(this, new());
